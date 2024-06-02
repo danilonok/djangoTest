@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .task-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        .task-done {
+            text-decoration: line-through;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4">Tasks</h1>
+        <div id="task-list" class="list-group"></div>
+
+        <div class="mt-4">
+            <h2>Add Task</h2>
+            <div class="form-group">
+                <label for="text">Text</label>
+                <input type="text" id="text" class="form-control" name="text">
+            </div>
+
+
+            <button onclick="createTask()" class="btn btn-primary">Add Task</button>
+        </div>
+    </div>
+
+    <script>
+        const apiUrl = 'http://localhost:8000/api/tasks/';
+
+        async function fetchTasks() {
+            const response = await fetch(apiUrl);
+            const tasks = await response.json();
+            const taskList = document.getElementById('task-list');
+            taskList.innerHTML = '';
+            tasks.forEach(task => {
+                const taskItem = document.createElement('div');
+                taskItem.className = `task-item list-group-item ${task.done ? 'task-done' : ''}`;
+                taskItem.innerHTML = `
+                    <span>
+                        <strong>${task.text}</strong><br>
+
+                        <em>Published: ${task.published_date}</em>
+                    </span>
+                    <span>
+                        <input type="checkbox" ${task.done ? 'checked' : ''} onclick="toggleDone(${task.id}, ${task.done})">
+                        <button onclick="deleteTask(${task.id})" class="btn btn-danger btn-sm ml-2">Delete</button>
+                    </span>
+                `;
+                taskList.appendChild(taskItem);
+            });
+        }
+
+        async function createTask() {
+            const text = document.getElementById('text').value;
+            //const description = document.getElementById('description').value;
+            //const done = document.getElementById('done').checked;
+            //const publishedDate = document.getElementById('published_date').value;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text, done: false }),
+            });
+
+            if (response.ok) {
+                fetchTasks();
+            } else {
+                alert('Error creating task');
+            }
+        }
+
+        async function deleteTask(id) {
+            const response = await fetch(`${apiUrl}${id}/`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                fetchTasks();
+            } else {
+                alert('Error deleting task');
+            }
+        }
+
+        async function toggleDone(id, done) {
+            const response = await fetch(`${apiUrl}${id}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ done: !done }),
+            });
+
+            if (response.ok) {
+                fetchTasks();
+            } else {
+                alert('Error updating task');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchTasks);
+    </script>
+</body>
+</html>
